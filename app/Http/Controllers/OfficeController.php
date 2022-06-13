@@ -15,8 +15,8 @@ class OfficeController extends Controller
         $offices = Office::query()
         ->where('approval_status', Office::APPROVAL_APPROVED)
         ->where('hidden', false)
-        ->when(request('host_id'), fn($builder) => $builder->whereUserId(request('host_id')))
-        ->when(request('user_id'), fn(Builder $builder) => $builder->whereRelation('reservations', 'user_id', '=', request('user_id')))
+        ->when(request('user_id'), fn($builder) => $builder->whereUserId(request('user_id')))
+        ->when(request('visitor_id'), fn(Builder $builder) => $builder->whereRelation('reservations', 'user_id', '=', request('visitor_id')))
         ->when(
             request('lat') && request('lng'),
             fn(Builder $builder) => $builder->nearestTo(request('lat'), request('lng')),
@@ -28,5 +28,11 @@ class OfficeController extends Controller
         return OfficeResource::collection(
             $offices
         );
+    }
+    public function show(Office $office) {
+        $office
+            ->loadCount(['reservations' => fn(Builder $builder) => $builder->where('status', Reservation::STATUS_ACTIVE)])
+            ->load(['images', 'tags', 'user']);
+        return OfficeResource::make($office);
     }
 }

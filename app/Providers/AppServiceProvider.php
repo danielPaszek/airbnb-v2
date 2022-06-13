@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Office;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -26,5 +28,10 @@ class AppServiceProvider extends ServiceProvider
     {
         //disable mass assiment protection on all models
         Model::unguard();
+
+        //store in db custom names not full classes
+        Relation::enforceMorphMap([
+            'office' => Office::class
+        ]);
     }
 }

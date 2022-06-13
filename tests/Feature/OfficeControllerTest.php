@@ -27,40 +27,27 @@ class OfficeControllerTest extends TestCase
         $this->assertNotNull($response->json('links'));
     }
 
-    public function test_filterByHost() {
+    public function test_filterByUser() {
         $host = User::factory()->create();
         $office = Office::factory()->for($host)->create();
 
-        $response = $this->get('/api/offices?host_id='.$host->id);
+        $response = $this->get('/api/offices?user_id='.$host->id);
 
         $response->assertStatus(200);
         $response->assertJsonCount(1, 'data');
         $this->assertEquals($office->id, $response->json('data')[0]['id']);
     }
 
-    public function test_filterByUser() {
+    public function test_filterByVisitor() {
         $user = User::factory()->create();
         $office = Office::factory()->create();
         Reservation::factory()->for($office)->for($user)->create();
 
-        $response = $this->get('/api/offices?user_id='.$user->id);
+        $response = $this->get('/api/offices?visitor_id='.$user->id);
         $response->assertStatus(200);
         $response->assertJsonCount(1, 'data');
         $this->assertEquals($office->id, $response->json('data')[0]['id']);
     }
-
-    // public function test_IncludeImages() {
-    //     $user = User::factory()->create();
-
-    //     $office = Office::factory()->for($user)->has(Tag::factory()->count(1))->has(Image::factory()->count(1))->create();
-
-    //     $response = $this->get('/api/offices');
-
-    //     $response->assertStatus(200);
-    //     $this->assertIsArray($response->json('data')[0]['tags']);
-    //     $this->assertIsArray($response->json('data')[0]['images']);
-    //     // $this->assertEquals($user->id, $response->json('data')[0]['user']['id']);
-    // }
 
     public function test_OrdersByDistance() {
         //52.40323778296758,
@@ -91,6 +78,26 @@ class OfficeControllerTest extends TestCase
         }
         $ok = $inxNear < $inxFurther;
         $this->assertTrue($ok);
+    }
+    public function test_showOffice()
+    {
+        $user = User::factory()->create();
+        $tag = Tag::factory()->create();
+        $office = Office::factory()->for($user)->create();
+
+        $office->tags()->attach($tag);
+        $office->images()->create(['path' => 'image.jpg']);
+
+        Reservation::factory()->for($office)->create(['status' => Reservation::STATUS_ACTIVE]);
+        Reservation::factory()->for($office)->create(['status' => Reservation::STATUS_CANCELLED]);
+
+
+        $response = $this->get('/api/offices/'.$office->id);
+        $response->assertStatus(200);
+        $this->assertEquals($office->id, $response->json('data')['id']);
+        $this->assertIsArray($response->json('data')['tags']);
+        $this->assertIsArray($response->json('data')['images']);
+        $this->assertEquals($user->id, $response->json('data')['user']['id']);
     }
 
 }

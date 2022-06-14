@@ -9,6 +9,7 @@ use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class OfficeControllerTest extends TestCase
@@ -100,4 +101,33 @@ class OfficeControllerTest extends TestCase
         $this->assertEquals($user->id, $response->json('data')['user']['id']);
     }
 
+    //TODO: test create endpoint
+    public function test_createOffice() {
+        $user = User::factory()->create();
+        $tags = Tag::factory(2)->create();
+
+        Sanctum::actingAs($user, ['*']);
+
+        $reponse = $this->postJson('/api/offices/', Office::factory()->raw([
+            'tags' => $tags->pluck('id')->toArray()
+        ]));
+        // $reponse->dump();
+        $reponse->assertJsonPath('data.approval_status', Office::APPROVAL_PENDING);
+        $this->assertDatabaseHas('offices', [
+            'id' => $reponse->json('data.id')
+        ]);
+
+    }
+    public function test_CantCreateOffice() {
+        $user = User::factory()->create();
+
+        $token = $user->createToken('test', []);
+
+
+        $response = $this->postJson('/api/offices/',[],[
+            'Authorization' => 'Bearer '.$token->plainTextToken
+        ]);
+        // dd($response->status());
+        $response->assertStatus(403);
+    }
 }

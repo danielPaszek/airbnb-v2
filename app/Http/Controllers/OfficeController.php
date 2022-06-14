@@ -7,6 +7,8 @@ use App\Models\Office;
 use App\Models\Reservation;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Validation\Rule;
 
 class OfficeController extends Controller
 {
@@ -33,6 +35,41 @@ class OfficeController extends Controller
         $office
             ->loadCount(['reservations' => fn(Builder $builder) => $builder->where('status', Reservation::STATUS_ACTIVE)])
             ->load(['images', 'tags', 'user']);
+        return OfficeResource::make($office);
+    }
+    public function create() {
+
+        //uses hasApiToken trait. ??
+        if(! auth()->user()->tokenCan('office.create')) {
+            abort(403);
+        }
+
+        $attributes = validator(request()->all(),
+        [
+            'title' => ['required', 'string'],
+            'description' => ['required', 'string'],
+            'address_line1' => ['required', 'string'],
+            'lat' => ['required', 'numeric'],
+            'lng' => ['required', 'numeric'],
+            'hidden' => ['bool'],
+            'price_per_day' => ['required', 'integer', 'min:100'],
+            'monthly_discount' => ['integer', 'min:0', 'max:99'],
+
+            'tags' => ['array'],
+            //query for each tag. Change later!
+            'tags.*' => ['integer', Rule::exists('tags', 'id')],
+        ])->validate();
+
+        $attributes['user_id'] = auth()->id();
+        $attributes['approval_status'] = Office::APPROVAL_PENDING;
+
+        $office = Office::create(
+            Arr::except($attributes, ['tags'])
+        );
+
+        //not sure why that
+        $office->tags()->sync($attributes['tags']);
+
         return OfficeResource::make($office);
     }
 }

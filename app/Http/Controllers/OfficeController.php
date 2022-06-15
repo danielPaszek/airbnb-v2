@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreOfficeRequest;
+use App\Http\Requests\UpdateOfficeRequest;
 use App\Http\Resources\OfficeResource;
 use App\Models\Office;
 use App\Models\Reservation;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class OfficeController extends Controller
@@ -37,39 +40,43 @@ class OfficeController extends Controller
             ->load(['images', 'tags', 'user']);
         return OfficeResource::make($office);
     }
-    public function create() {
+    public function create(StoreOfficeRequest $request) {
 
         //uses hasApiToken trait. ??
-        if(! auth()->user()->tokenCan('office.create')) {
-            abort(403);
-        }
+        // dd(auth()->user()->accessToken);
 
-        $attributes = validator(request()->all(),
-        [
-            'title' => ['required', 'string'],
-            'description' => ['required', 'string'],
-            'address_line1' => ['required', 'string'],
-            'lat' => ['required', 'numeric'],
-            'lng' => ['required', 'numeric'],
-            'hidden' => ['bool'],
-            'price_per_day' => ['required', 'integer', 'min:100'],
-            'monthly_discount' => ['integer', 'min:0', 'max:99'],
-
-            'tags' => ['array'],
-            //query for each tag. Change later!
-            'tags.*' => ['integer', Rule::exists('tags', 'id')],
-        ])->validate();
+        $attributes = $request->validated();
 
         $attributes['user_id'] = auth()->id();
         $attributes['approval_status'] = Office::APPROVAL_PENDING;
 
-        $office = Office::create(
-            Arr::except($attributes, ['tags'])
-        );
+        $office = DB::transaction(function() use($attributes) {
+            $office = Office::create(
+                Arr::except($attributes, ['tags'])
+            );
+    
+            //change intermediate table 
+            $office->tags()->attach($attributes['tags']);
+            return $office;
+        });
+        return OfficeResource::make($office->load(['images', 'tags', 'user']));
+    }
+    public function update(Office $office, UpdateOfficeRequest $request)
+    {
 
-        //not sure why that
-        $office->tags()->sync($attributes['tags']);
+        $attributes = $request->validated();
 
-        return OfficeResource::make($office);
+        $attributes['user_id'] = auth()->id();
+        $attributes['approval_status'] = Office::APPROVAL_PENDING;
+        
+         DB::transaction(function() use($attributes, $office) {
+            $office->update(
+                Arr::except($attributes, ['tags'])
+            );
+    
+            $office->tags()->sync($attributes['tags']);
+            return $office;
+        });
+        return OfficeResource::make($office->load(['images', 'tags', 'user']));
     }
 }

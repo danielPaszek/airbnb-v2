@@ -53,12 +53,12 @@ class OfficeControllerTest extends TestCase
     public function test_OrdersByDistance() {
         //52.40323778296758,
         //16.919121789818384
-        $office1 = Office::factory()->create([
+        Office::factory()->create([
             'lat' => 52.38613747130224,
             'lng' => 16.74467782830996,
             'title' => 'Near Test'
         ]);
-        $office2 = Office::factory()->create([
+        Office::factory()->create([
             'lat' => 52.35416762, 
             'lng' => 16.51637491,
             'title' => 'Further Test'
@@ -100,8 +100,6 @@ class OfficeControllerTest extends TestCase
         $this->assertIsArray($response->json('data')['images']);
         $this->assertEquals($user->id, $response->json('data')['user']['id']);
     }
-
-    //TODO: test create endpoint
     public function test_createOffice() {
         $user = User::factory()->create();
         $tags = Tag::factory(2)->create();

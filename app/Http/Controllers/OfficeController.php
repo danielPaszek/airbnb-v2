@@ -14,6 +14,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class OfficeController extends Controller
 {
@@ -63,6 +64,7 @@ class OfficeController extends Controller
             }
             return $office;
         });
+        //TODO: should be admin
         Notification::send(User::find(1), new OfficePendingApproval($office));
 
         return OfficeResource::make($office->load(['images', 'tags', 'user']));
@@ -92,5 +94,16 @@ class OfficeController extends Controller
             Notification::send(User::find(1), new OfficePendingApproval($office));
         }
         return OfficeResource::make($office->load(['images', 'tags', 'user']));
+    }
+    public function delete(Office $office) {
+        if(!auth()->user()->tokenCan('office.delete')) {
+            abort(403);
+        }
+        $this->authorize('delete', $office);
+
+        if($office->reservations()->where('status', Reservation::STATUS_ACTIVE)->exists()) {
+            throw ValidationException::withMessages(['office' => 'Cannot delete reserved office']);
+        }
+        $office->delete();
     }
 }

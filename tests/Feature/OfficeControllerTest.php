@@ -82,6 +82,7 @@ class OfficeControllerTest extends TestCase
         $ok = $inxNear < $inxFurther;
         $this->assertTrue($ok);
     }
+    
     public function test_showOffice()
     {
         $user = User::factory()->create();
@@ -102,6 +103,7 @@ class OfficeControllerTest extends TestCase
         $this->assertIsArray($response->json('data')['images']);
         $this->assertEquals($user->id, $response->json('data')['user']['id']);
     }
+
     public function test_createOffice() {
         $admin = User::find(1);
         Notification::fake();
@@ -121,6 +123,7 @@ class OfficeControllerTest extends TestCase
         ]);
         Notification::assertSentTo($admin, OfficePendingApproval::class);
     }
+
     public function test_CantCreateOffice() {
         $user = User::factory()->create();
 
@@ -133,6 +136,7 @@ class OfficeControllerTest extends TestCase
         // dd($response->status());
         $response->assertStatus(403);
     }
+
     public function test_UpdateOffice() {
         $admin = User::find(1);
         $user = User::factory()->create();
@@ -178,5 +182,30 @@ class OfficeControllerTest extends TestCase
             //title has not change
             'title' => $office->title
         ]);
+    }
+
+    public function test_deleteOffice()
+    {
+        $user = User::factory()->create();
+        $office = Office::factory()->for($user)->create();
+
+        $this->actingAs($user);
+
+        $response = $this->delete('/api/offices/'. $office->id);
+        $response->assertStatus(200);
+        $this->assertSoftDeleted($office);
+    }
+
+    public function test_deleteNotYourOffice()
+    {
+        $user = User::factory()->create();
+        $anotherUser = User::factory()->create();
+        $office = Office::factory()->for($anotherUser)->create();
+
+        $this->actingAs($user);
+
+        $response = $this->delete('/api/offices/'. $office->id);
+        $response->assertStatus(403);
+        $this->assertNotSoftDeleted($office);
     }
 }

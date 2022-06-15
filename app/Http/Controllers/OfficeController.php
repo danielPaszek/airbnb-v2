@@ -7,10 +7,12 @@ use App\Http\Requests\UpdateOfficeRequest;
 use App\Http\Resources\OfficeResource;
 use App\Models\Office;
 use App\Models\Reservation;
+use App\Models\User;
+use App\Notifications\OfficePendingApproval;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 
 class OfficeController extends Controller
@@ -56,27 +58,39 @@ class OfficeController extends Controller
             );
     
             //change intermediate table 
-            $office->tags()->attach($attributes['tags']);
+            if (isset($attributes['tags'])) {
+                $office->tags()->attach($attributes['tags']);
+            }
             return $office;
         });
+        Notification::send(User::find(1), new OfficePendingApproval($office));
+
         return OfficeResource::make($office->load(['images', 'tags', 'user']));
     }
     public function update(Office $office, UpdateOfficeRequest $request)
     {
-
+        //check if office belongs to user
+        $this->authorize('update', $office);
+        //custom request checks if sanctum token is valid 
         $attributes = $request->validated();
-
         $attributes['user_id'] = auth()->id();
-        $attributes['approval_status'] = Office::APPROVAL_PENDING;
+    
+        $office->fill(Arr::except($attributes, ['tags']));
+        if($requiresReview = $office->isDirty(['title', 'description', 'address_line1'])) {
+            $office->approval_status = Office::APPROVAL_PENDING;
+        }
         
          DB::transaction(function() use($attributes, $office) {
-            $office->update(
-                Arr::except($attributes, ['tags'])
-            );
+            $office->save();
     
-            $office->tags()->sync($attributes['tags']);
+            if (isset($attributes['tags'])) {
+                $office->tags()->sync($attributes['tags']);
+            }
             return $office;
         });
+        if($requiresReview) {
+            Notification::send(User::find(1), new OfficePendingApproval($office));
+        }
         return OfficeResource::make($office->load(['images', 'tags', 'user']));
     }
 }

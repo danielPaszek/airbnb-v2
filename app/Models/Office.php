@@ -47,8 +47,6 @@ class Office extends Model
         'lng' => 'decimal:8',
         'approval_status' => 'integer',
         'hidden' => 'bool',
-
-        // is this necessary?
         'price_per_day' => 'integer',
         'monthly_discount' => 'integer',
     ];

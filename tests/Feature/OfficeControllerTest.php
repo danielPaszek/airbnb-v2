@@ -7,8 +7,10 @@ use App\Models\Office;
 use App\Models\Reservation;
 use App\Models\Tag;
 use App\Models\User;
+use App\Notifications\OfficePendingApproval;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -18,7 +20,7 @@ class OfficeControllerTest extends TestCase
 
     public function test_ListsPaginatedOffices()
     {
-        //Office::factory(3)->create();
+        Office::factory(3)->create();
         $response = $this->get('/api/offices');
         //dd($response->json());
         $response->assertStatus(200);
@@ -101,6 +103,9 @@ class OfficeControllerTest extends TestCase
         $this->assertEquals($user->id, $response->json('data')['user']['id']);
     }
     public function test_createOffice() {
+        $admin = User::find(1);
+        Notification::fake();
+        
         $user = User::factory()->create();
         $tags = Tag::factory(2)->create();
 
@@ -114,7 +119,7 @@ class OfficeControllerTest extends TestCase
         $this->assertDatabaseHas('offices', [
             'id' => $reponse->json('data.id')
         ]);
-
+        Notification::assertSentTo($admin, OfficePendingApproval::class);
     }
     public function test_CantCreateOffice() {
         $user = User::factory()->create();
@@ -127,5 +132,51 @@ class OfficeControllerTest extends TestCase
         ]);
         // dd($response->status());
         $response->assertStatus(403);
+    }
+    public function test_UpdateOffice() {
+        $admin = User::find(1);
+        $user = User::factory()->create();
+        $tags = Tag::factory(4)->create();
+        $otherTag = Tag::factory()->create();
+        $office = Office::factory()->for($user)->create();
+
+        Notification::fake();
+        $office->tags()->attach($tags);
+
+        Sanctum::actingAs($user, ['*']);
+
+        $response = $this->putJson('/api/offices/'. $office->id, 
+        [
+            'title' => 'Updated title',
+            'tags' => [$tags[0]->id, $otherTag->id]
+        ]);
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.title','Updated title' );
+        $response->assertJsonCount(2, 'data.tags');
+        $this->assertDatabaseHas('offices', [
+            'id' => $response->json('data.id'),
+            'title' => 'Updated title',
+            'approval_status' => Office::APPROVAL_PENDING
+        ]);
+        Notification::assertSentTo($admin, OfficePendingApproval::class);
+    }
+    
+    public function test_UpdateNotYourOffice() {
+        $user = User::factory()->create();
+        $anotherUser = User::factory()->create();
+        $office = Office::factory()->for($anotherUser)->create();
+
+        Sanctum::actingAs($user, ['*']);
+
+        $response = $this->putJson('/api/offices/'. $office->id, 
+        [
+            'title' => 'Updated title',
+        ]);
+        $response->assertStatus(403);
+        $this->assertDatabaseHas('offices', [
+            'id' => $office->id,
+            //title has not change
+            'title' => $office->title
+        ]);
     }
 }

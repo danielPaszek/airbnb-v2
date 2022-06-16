@@ -40,6 +40,20 @@ class OfficeControllerTest extends TestCase
         $response->assertJsonCount(1, 'data');
         $this->assertEquals($office->id, $response->json('data')[0]['id']);
     }
+    public function test_filterByUserOwnOffices() {
+        $host = User::factory()->create();
+        $office = Office::factory()->for($host)->create();
+        Office::factory()->for($host)->create(['hidden' => true]);
+        Office::factory()->for($host)->create(['approval_status' => Office::APPROVAL_PENDING]);
+
+        Sanctum::actingAs($host, ['*']);
+
+        $response = $this->get('/api/offices?user_id='.$host->id);
+
+        $response->assertStatus(200);
+        $response->assertJsonCount(3, 'data');
+        $this->assertEquals($office->id, $response->json('data')[0]['id']);
+    }
 
     public function test_filterByVisitor() {
         $user = User::factory()->create();
@@ -105,7 +119,7 @@ class OfficeControllerTest extends TestCase
     }
 
     public function test_createOffice() {
-        $admin = User::find(1);
+        $admin = User::factory()->create(['is_admin' => true]);
         Notification::fake();
         
         $user = User::factory()->create();
@@ -138,7 +152,7 @@ class OfficeControllerTest extends TestCase
     }
 
     public function test_UpdateOffice() {
-        $admin = User::find(1);
+        $admin = User::factory()->create(['is_admin' => true]);
         $user = User::factory()->create();
         $tags = Tag::factory(4)->create();
         $otherTag = Tag::factory()->create();

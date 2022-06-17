@@ -17,7 +17,12 @@ Route::put('/offices/{office}', [OfficeController::class, 'update'])
     ->middleware(['auth:sanctum', 'verified']);
 Route::delete('/offices/{office}', [OfficeController::class, 'delete'])
     ->middleware(['auth:sanctum', 'verified']);
-Route::post('/offices/{office}/images', [OfficeImageController::class, 'store'])
-    ->middleware(['auth:sanctum', 'verified']);
 Route::get('/offices/{office}', [OfficeController::class, 'show']);
 
+//officeImage
+Route::post('/offices/{office}/images', [OfficeImageController::class, 'store'])
+    ->middleware(['auth:sanctum', 'verified']);
+Route::delete('/offices/{office}/images/{image}', [OfficeImageController::class, 'delete'])
+    ->middleware(['auth:sanctum', 'verified'])
+    //I think it is ok to do this
+    ->scopeBindings();

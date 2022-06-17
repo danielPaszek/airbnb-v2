@@ -28,6 +28,9 @@ class Office extends Model
     public function images(): MorphMany {
         return $this->morphMany(Image::class, 'resource');
     }
+    public function featuredImage(): BelongsTo {
+        return $this->belongsTo(Image::class, 'featured_image_id');
+    }
 
     public function tags(): BelongsToMany {
         return $this->belongsToMany(Tag::class, 'offices_tags');

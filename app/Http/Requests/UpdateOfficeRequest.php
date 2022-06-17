@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Office;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -34,6 +35,7 @@ class UpdateOfficeRequest extends FormRequest
         'price_per_day' => ['filled', 'integer', 'min:100'],
         'monthly_discount' => ['integer', 'min:0', 'max:99'],
 
+        'featured_image_id' => [Rule::exists('images', 'id')->where('resource_type', 'office')->where('resource_id', $this->office->id)],
         'tags' => ['array'],
         //query for each tag. Change later!
         'tags.*' => ['integer', Rule::exists('tags', 'id')],

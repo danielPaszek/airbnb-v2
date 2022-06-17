@@ -158,6 +158,10 @@ class OfficeControllerTest extends TestCase
         $otherTag = Tag::factory()->create();
         $office = Office::factory()->for($user)->create();
 
+        $image = $office->images()->create([
+            'path' => 'image.jpg'
+        ]);
+
         Notification::fake();
         $office->tags()->attach($tags);
 
@@ -166,7 +170,8 @@ class OfficeControllerTest extends TestCase
         $response = $this->putJson('/api/offices/'. $office->id, 
         [
             'title' => 'Updated title',
-            'tags' => [$tags[0]->id, $otherTag->id]
+            'tags' => [$tags[0]->id, $otherTag->id],
+            'featured_image_id' => $image->id,
         ]);
         $response->assertStatus(200);
         $response->assertJsonPath('data.title','Updated title' );
@@ -174,7 +179,8 @@ class OfficeControllerTest extends TestCase
         $this->assertDatabaseHas('offices', [
             'id' => $response->json('data.id'),
             'title' => 'Updated title',
-            'approval_status' => Office::APPROVAL_PENDING
+            'approval_status' => Office::APPROVAL_PENDING,
+            'featured_image_id' =>  $image->id
         ]);
         Notification::assertSentTo($admin, OfficePendingApproval::class);
     }

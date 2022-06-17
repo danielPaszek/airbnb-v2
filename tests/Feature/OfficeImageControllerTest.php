@@ -33,4 +33,24 @@ class OfficeImageControllerTest extends TestCase
             $response->json('data.path')
         );
     }
+    public function test_deleteImageForOffice()
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('office_image.jpg', 'empty');
+        $user = User::factory()->create();
+        $office = Office::factory()->for($user)->create();
+        $office->images()->create([
+            'path' => 'image.jpg'
+        ]);
+        $image = $office->images()->create([
+            'path' => 'office_image.jpg'
+        ]);
+
+        Sanctum::actingAs($user, ['*']);
+        $response = $this->deleteJson("/api/offices/{$office->id}/images/{$image->id}");
+        $response->assertStatus(200);
+        $this->assertModelMissing($image);
+        Storage::disk('public')->assertMissing('office_image.jpg');
+
+    }
 }

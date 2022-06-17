@@ -48,9 +48,6 @@ class OfficeController extends Controller
     }
     public function create(StoreOfficeRequest $request) {
 
-        //uses hasApiToken trait. ??
-        // dd(auth()->user()->accessToken);
-
         $attributes = $request->validated();
 
         $attributes['user_id'] = auth()->id();

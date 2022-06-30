@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\GetUserReservations;
 use App\Http\Resources\ReservationResource;
 use App\Models\Reservation;
 use Illuminate\Http\Request;
 
 class UserReservationController extends Controller
 {
-    public function index()
+    public function index(GetUserReservations $request)
     {
+        $request->validated();
         if(!auth()->user()->tokenCan('reservations.show')) {
             abort(403);
         }

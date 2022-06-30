@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -103,6 +104,11 @@ class OfficeController extends Controller
         if($office->reservations()->where('status', Reservation::STATUS_ACTIVE)->exists()) {
             throw ValidationException::withMessages(['office' => 'Cannot delete reserved office']);
         }
+
+        $office->images()->each(function ($image) {
+            Storage::disk('public')->delete($image->path);
+        });
+        $office->images()->delete();
         $office->delete();
     }
 }

@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\HostReservationController;
 use App\Http\Controllers\OfficeController;
 use App\Http\Controllers\OfficeImageController;
 use App\Http\Controllers\TagController;
+use App\Http\Controllers\UserReservationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -24,5 +26,11 @@ Route::post('/offices/{office}/images', [OfficeImageController::class, 'store'])
     ->middleware(['auth:sanctum', 'verified']);
 Route::delete('/offices/{office}/images/{image}', [OfficeImageController::class, 'delete'])
     ->middleware(['auth:sanctum', 'verified'])
-    //I think it is ok to do this
     ->scopeBindings();
+
+//User reservations
+Route::get('/reservations', [UserReservationController::class, 'index'])
+->middleware(['auth:sanctum', 'verified']);
+//
+Route::get('/host/reservations', [HostReservationController::class, 'index'])
+->middleware(['auth:sanctum', 'verified']);

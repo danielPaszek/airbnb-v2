@@ -208,12 +208,16 @@ class OfficeControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $office = Office::factory()->for($user)->create();
+        $image = $office->images()->create([
+            'path' => 'office_image.jpg'
+        ]);
 
-        $this->actingAs($user);
+        Sanctum::actingAs($user, ['*']);
 
         $response = $this->delete('/api/offices/'. $office->id);
         $response->assertStatus(200);
         $this->assertSoftDeleted($office);
+        $this->assertModelMissing($image);
     }
 
     public function test_deleteNotYourOffice()
@@ -222,7 +226,7 @@ class OfficeControllerTest extends TestCase
         $anotherUser = User::factory()->create();
         $office = Office::factory()->for($anotherUser)->create();
 
-        $this->actingAs($user);
+        Sanctum::actingAs($user, ['*']);
 
         $response = $this->delete('/api/offices/'. $office->id);
         $response->assertStatus(403);

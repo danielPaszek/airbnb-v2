@@ -14,6 +14,11 @@ class ReservationResource extends JsonResource
      */
     public function toArray($request)
     {
-        return parent::toArray($request);
+        return [
+            $this->merge(
+                parent::toArray($request)
+            ),
+            'office' => OfficeResource::make($this->office),
+            ];
     }
 }

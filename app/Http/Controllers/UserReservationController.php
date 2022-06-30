@@ -21,8 +21,10 @@ class UserReservationController extends Controller
                 fn($query) => $query->where('status', request('status'))
             )->when(request('from_date') && request('to_date'),
                 function($query) {
-                    $query->whereBetween('start_date', [request('from_date'), request('to_date')])
-                    ->orWhereBetween('end_date', [request('from_date'), request('to_date')]);
+                    $query->where(function($query) {
+                        $query->whereBetween('start_date', [request('from_date'), request('to_date')])
+                        ->orWhereBetween('end_date', [request('from_date'), request('to_date')]);
+                    });
             })
             ->with(['office', 'office.featuredImage'])
             ->paginate(20);
